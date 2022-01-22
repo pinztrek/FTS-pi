@@ -5,7 +5,8 @@
 
 - Create an FTS user, with appropriate permissions
 - Change the host name to FTS
-- Configure Wi-Fi if desired. *(Edit carefully, it's yaml and extremely picky about spaces and tabs!)*
+- Configure Wi-Fi if desired.  
+*(Edit ***user-data*** carefully, it's yaml and extremely picky about spaces and tabs! Use of a smart editor like *code* is recommended)*
 - Inhibit unattended upgrades which is a problem on the default Ubuntu distribution when trying to install FTS
 - Inhibit cloud-net from future execution
 - Tune sshd
