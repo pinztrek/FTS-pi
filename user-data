@@ -1,0 +1,100 @@
+#cloud-config
+
+# The networking setup is a bit of a hack, because the cloud-init network
+# configuration doesn't support WiFi, see
+# https://cloudinit.readthedocs.io/en/latest/topics/network-config-format-v2.html.
+
+
+# Set locale and TZ. edit carefully if needed. 
+# spaces/indent matter in yaml files, so run though a yaml lint if there is any question!
+hostname: fts
+locale: C.UTF-8
+timezone: America/New_York
+
+chpasswd:
+  expire: true
+
+users:
+  - name: fts
+    gecos: FTS User
+    groups: [adm, sudo, users]
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    plain_text_passwd: 'deadparrot'
+    lock_passwd: false
+    shell: /bin/bash
+    ssh:
+        allow-pw: true
+    ssh_authorized_keys:
+      -
+
+write_files:
+# write netplan for eth0 and wifi
+# ethernet will be used if present, otherwise it will use wifi
+# Edit wifi carefully if needed! do not change indents/spaces!
+  - content: |
+        network:
+          version: 2
+          ethernets:
+            eth0:
+              dhcp4: true
+              optional: true
+          wifis:
+            wlan0:
+              dhcp4: true
+              optional: true
+              access-points:
+                "mySSID":
+                  password: "mywifipassword"
+    path: /etc/netplan/config.yaml
+  - content: |
+        PasswordAuthentication yes
+        ChallengeResponseAuthentication no
+        UsePAM yes
+        X11Forwarding no
+        PrintMotd no
+        PrintLastLog no
+        AcceptEnv LANG LC_*
+        Subsystem sftp /usr/lib/openssh/sftp-server
+    path: /etc/ssh/sshd_config.new
+
+bootcmd:
+  - "echo FTS cloud-init: disabling unattended upgrades"
+  - 'systemctl disable systemd-networkd-wait-online.service'
+  - 'systemctl mask systemd-networkd-wait-online.service'
+
+runcmd:
+  - "echo FTS cloud-init: apply new netplan"
+  - 'rm /etc/netplan/??-cloud-init.yaml'
+  - 'chmod go-r /etc/netplan/config.yaml'
+  - 'netplan apply'
+
+  # Disable optional PAM features for faster SSH login
+  - "echo FTS cloud-init: tweak sshd params"
+  - 'mv /etc/pam.d/sshd /etc/pam.d/sshd.bak'
+  - 'sed "s/^session[ \t]\+optional/#\0/" /etc/pam.d/sshd.bak > /etc/pam.d/sshd'
+
+  - "echo FTS cloud-init: force fts user to change their password"
+  - 'passwd -e fts'
+
+  # Back up the SSH default config and activate the new config
+  - "echo FTS cloud-init: apply new sshd params"
+  - 'mv /etc/ssh/sshd_config /etc/ssh/sshd_config.bak'
+  - 'mv /etc/ssh/sshd_config.new /etc/ssh/sshd_config'
+  - 'service ssh reload'
+
+  # Set up the WiFi country
+  - "echo FTS cloud-init: set country for wifi and region"
+  - 'apt-get update'
+  - 'apt-get -y install iw'
+  - 'iw reg set US'
+  - 'mv /etc/default/crda /etc/default/crda.bak'
+  - 'echo REGDOMAIN=US > /etc/default/crda'
+
+  # Run optional script for additoinal package setup
+  - "echo FTS cloud-init: running setup.sh to finish install"
+  - '/bin/sh -e /boot/firmware/setup.sh'
+
+  - "echo FTS cloud-init: inhibit cloud-init, active after reboot"
+  - 'touch /etc/cloud/cloud-init.disabled'
+
+  - "echo FTS cloud-init: end of user-data cloud-init. Install complete!"
