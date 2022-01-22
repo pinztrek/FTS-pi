@@ -31,5 +31,5 @@ You'll see some error messages about partitions, you can close those out
 - You can review the results of the cloud-net configuration run in:  
  */var/log/cloud-init-output.log*
 
-If you think it still running you can use sudo tail -f on that file to watch it execute:
-> *tail -f /var/log/c*out*log *
+If you think it still running you can use tail -f on that file to watch it execute:
+> *tail -f /var/log/c\*out\*log *
