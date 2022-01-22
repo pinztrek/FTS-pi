@@ -32,4 +32,4 @@ You'll see some error messages about partitions, you can close those out
  */var/log/cloud-init-output.log*
 
 If you think it still running you can use tail -f on that file to watch it execute:
-> *tail -f /var/log/c\*out\*log *
+> *tail -f /var/log/c\*out\*log*
